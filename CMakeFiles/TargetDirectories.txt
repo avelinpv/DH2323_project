@@ -1,0 +1,3 @@
+/home/avelinpv/Skola/4an/dgi/project/DH2323_project/CMakeFiles/rebuild_cache.dir
+/home/avelinpv/Skola/4an/dgi/project/DH2323_project/CMakeFiles/edit_cache.dir
+/home/avelinpv/Skola/4an/dgi/project/DH2323_project/CMakeFiles/Project.dir

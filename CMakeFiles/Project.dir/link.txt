@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/Project.dir/skeleton.cpp.o  -o Project -Wl,-Bstatic -lSDLmain -Wl,-Bdynamic -lSDL -lpthread 
