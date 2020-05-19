@@ -6,6 +6,18 @@
 
 #IncludeRegexTransform: 
 
+/home/avelinpv/Skola/4an/dgi/project/DH2323_project/OBJ_Loader.h
+iostream
+-
+vector
+-
+string
+-
+fstream
+-
+math.h
+-
+
 /home/avelinpv/Skola/4an/dgi/project/DH2323_project/SDLauxiliary.h
 SDL.h
 /home/avelinpv/Skola/4an/dgi/project/DH2323_project/SDL.h
@@ -19,6 +31,10 @@ glm/glm.hpp
 -
 vector
 -
+iostream
+-
+OBJ_Loader.h
+/home/avelinpv/Skola/4an/dgi/project/DH2323_project/OBJ_Loader.h
 
 /home/avelinpv/Skola/4an/dgi/project/DH2323_project/skeleton.cpp
 iostream
@@ -31,7 +47,11 @@ SDLauxiliary.h
 /home/avelinpv/Skola/4an/dgi/project/DH2323_project/SDLauxiliary.h
 TestModel.h
 /home/avelinpv/Skola/4an/dgi/project/DH2323_project/TestModel.h
+OBJ_Loader.h
+/home/avelinpv/Skola/4an/dgi/project/DH2323_project/OBJ_Loader.h
 math.h
+-
+cmath
 -
 stdlib.h
 -
