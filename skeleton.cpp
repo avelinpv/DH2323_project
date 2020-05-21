@@ -40,9 +40,11 @@ vec3 lightPower = 7.1f * vec3(1, 1, 1);
 vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
 vec3 currentNormal;
 vec3 currentReflectance;
-vec3 translation;
-mat3 rotationMatrix1;
-mat3 rotationMatrix2;
+Image img("texture2.bmp");
+int triangleCount;
+// vec3 translation;
+// mat3 rotationMatrix1;
+// mat3 rotationMatrix2;
 
 // ----------------------------------------------------------------------------
 // STRUCT
@@ -87,11 +89,7 @@ int main(int argc, char *argv[])
 	try
 	{
 		InitializeMagick(*argv);
-		Image img("texture.bmp");
-		ColorRGB rgb(img.pixelColor(0, 0)); // ie. pixel at pos x=0, y=0
-		cout << "red: " << rgb.red();
-		cout << ", green: " << rgb.green();
-		cout << ", blue: " << rgb.blue() << endl;
+		//Image img("texture.bmp");
 	}
 	catch (Magick::Exception &error)
 	{
@@ -104,7 +102,7 @@ int main(int argc, char *argv[])
 		Draw();
 	}
 
-	SDL_SaveBMP(screen, "screenshot4.bmp"); //Take screenshot
+	SDL_SaveBMP(screen, "screenshot6.bmp"); //Take screenshot
 	return 0;
 }
 
@@ -217,6 +215,7 @@ void Draw()
 		presentColor = triangles[i].color;
 		currentNormal = triangles[i].normal;
 		currentReflectance = triangles[i].color;
+		triangleCount = i;
 		vector<Vertex> vertices(3);
 		vertices[0].position = triangles[i].v0;
 		vertices[1].position = triangles[i].v1;
@@ -307,6 +306,20 @@ void PixelShader(const Pixel &p)
 
 		// 	// 	PutPixelSDL(screen, x, y, R);
 		// }
+
+		//Case: Tringles for the teapot.
+		if (triangleCount > 9)
+		{
+			try
+			{
+				ColorRGB rgb(img.pixelColor(x, y));
+				currentReflectance = vec3(rgb.red(), rgb.green(), rgb.blue());
+			}
+			catch (Magick::Exception &error)
+			{
+				cerr << "Caught Magick++ exception: " << error.what() << endl;
+			}
+		}
 
 		depthBuffer[x][y] = p.zinv;
 		vec3 rVec = glm::normalize(lightPos - p.pos3d);

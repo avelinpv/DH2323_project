@@ -280,7 +280,7 @@ void LoadObj(std::vector<Triangle> &triangles)
 		triangles[i].v2.y *= -1;
 		triangles[i].ComputeNormal();
 
-		if(i>7){
+		if(i>9){
 			triangles[i].normal = -triangles[i].normal;
 		}
 	}
