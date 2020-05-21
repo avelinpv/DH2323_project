@@ -9,18 +9,21 @@
 #include <cmath>
 #include <stdlib.h>
 #include <iostream>
+#include <Magick++.h>
 
+using namespace Magick;
 using namespace std;
 using glm::ivec2;
 using glm::mat3;
+using glm::mat4;
 using glm::vec2;
 using glm::vec3;
 
 // ----------------------------------------------------------------------------
 // GLOBAL VARIABLES
 
-const int SCREEN_WIDTH = 500;
-const int SCREEN_HEIGHT = 500;
+const int SCREEN_WIDTH = 700;
+const int SCREEN_HEIGHT = 700;
 SDL_Surface *screen;
 int t;
 vector<Triangle> triangles;
@@ -37,6 +40,9 @@ vec3 lightPower = 7.1f * vec3(1, 1, 1);
 vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
 vec3 currentNormal;
 vec3 currentReflectance;
+vec3 translation;
+mat3 rotationMatrix1;
+mat3 rotationMatrix2;
 
 // ----------------------------------------------------------------------------
 // STRUCT
@@ -78,13 +84,27 @@ int main(int argc, char *argv[])
 	screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT);
 	t = SDL_GetTicks(); // Set start value for timer.
 
+	try
+	{
+		InitializeMagick(*argv);
+		Image img("texture.bmp");
+		ColorRGB rgb(img.pixelColor(0, 0)); // ie. pixel at pos x=0, y=0
+		cout << "red: " << rgb.red();
+		cout << ", green: " << rgb.green();
+		cout << ", blue: " << rgb.blue() << endl;
+	}
+	catch (Magick::Exception &error)
+	{
+		cerr << "Caught Magick++ exception: " << error.what() << endl;
+	}
+
 	while (NoQuitMessageSDL())
 	{
 		Update();
 		Draw();
 	}
 
-	SDL_SaveBMP(screen, "screenshot2.bmp"); //Take screenshot
+	SDL_SaveBMP(screen, "screenshot4.bmp"); //Take screenshot
 	return 0;
 }
 
@@ -217,26 +237,77 @@ void VertexShader(const Vertex &v, Pixel &p)
 	vec3 vLight = (v.position - lightPos);
 
 	p.zinv = 1.0f / vPrime.z;
-	p.shadowInv = 1.0f / vLight.z;
 	p.x = focalLength * (vPrime.x / vPrime.z) + (SCREEN_WIDTH / 2);
 	p.y = focalLength * (vPrime.y / vPrime.z) + (SCREEN_HEIGHT / 2);
 	p.pos3d = v.position;
+
+	p.shadowInv = 1.0f / vLight.z;
+	if (p.shadowInv < shadowMap[p.x][p.y])
+	{
+		shadowMap[p.x][p.y] = p.shadowInv;
+	}
+}
+
+//https://gist.github.com/kevinmoran/b45980723e53edeb8a5a43c49f134724
+mat3 rotateAlign(vec3 u1, vec3 u2)
+{
+	vec3 axis = glm::cross(u1, u2);
+
+	const float cosA = glm::dot(u1, u2);
+	const float k = 1.0f / (1.0f + cosA);
+
+	mat3 result((axis.x * axis.x * k) + cosA,
+				(axis.y * axis.x * k) - axis.z,
+				(axis.z * axis.x * k) + axis.y,
+				(axis.x * axis.y * k) + axis.z,
+				(axis.y * axis.y * k) + cosA,
+				(axis.z * axis.y * k) - axis.x,
+				(axis.x * axis.z * k) - axis.y,
+				(axis.y * axis.z * k) + axis.x,
+				(axis.z * axis.z * k) + cosA);
+
+	return result;
 }
 
 void PixelShader(const Pixel &p)
 {
 	int x = p.x;
 	int y = p.y;
+	vec3 temp3d;
 
-	if (p.shadowInv > shadowMap[x][y])
-	{
-		shadowMap[x][y] = p.shadowInv;
-		vec3 shadowColor = vec3(0); //presentColor + 0.5f*(vec3(0) - presentColor);
-		PutPixelSDL(screen, x, y, shadowColor);
-	}
+	float bias = 0.005;
+	float visability = 1.0f;
 
 	if (p.zinv > depthBuffer[x][y])
 	{
+		//translation = vec3(lightPos.x - cameraPos.x, lightPos.y - cameraPos.y,
+
+		// rotationMatrix1 = rotateAlign(glm::normalize(p.pos3d), glm::normalize(cameraPos - p.pos3d));
+
+		// rotationMatrix2 = rotateAlign(glm::normalize(cameraPos - p.pos3d), glm::normalize(lightPos - p.pos3d));
+		// temp3d = p.pos3d * rotationMatrix2;
+
+		// vec3 vPrime = (temp3d - lightPos);
+		// int tempx = focalLength * (vPrime.x / vPrime.z) + (SCREEN_WIDTH / 2);
+		// int tempy = focalLength * (vPrime.y / vPrime.z) + (SCREEN_HEIGHT / 2);
+		// cout << tempy << " " << tempx << endl;
+
+		// if (1.0f / vPrime.z > shadowMap[tempx][tempy] - bias)
+		// {
+		// 	visability = 0.6f;
+
+		// 	// 	depthBuffer[x][y] = p.zinv;
+		// 	// 	vec3 rVec = glm::normalize(lightPos - p.pos3d);
+		// 	// 	float r = glm::length(lightPos - p.pos3d);
+		// 	// 	vec3 n = currentNormal;
+		// 	// 	float area = 4 * M_PI * r * r;
+
+		// 	// 	vec3 D = lightPower * max(glm::dot(rVec, n), 0.0f) / area;
+		// 	// 	vec3 R = visability * currentReflectance * (D + indirectLightPowerPerArea);
+
+		// 	// 	PutPixelSDL(screen, x, y, R);
+		// }
+
 		depthBuffer[x][y] = p.zinv;
 		vec3 rVec = glm::normalize(lightPos - p.pos3d);
 		float r = glm::length(lightPos - p.pos3d);
@@ -244,15 +315,10 @@ void PixelShader(const Pixel &p)
 		float area = 4 * M_PI * r * r;
 
 		vec3 D = lightPower * max(glm::dot(rVec, n), 0.0f) / area;
-		vec3 R = currentReflectance * (D + indirectLightPowerPerArea);
+		vec3 R = visability * currentReflectance * (D + indirectLightPowerPerArea);
 
 		PutPixelSDL(screen, x, y, R);
 	}
-	// else if (p.zinv < depthBuffer[x][y])
-	// {
-	// 	vec3 shadowColor = presentColor + 0.5f*(vec3(0) - presentColor);
-	// 	PutPixelSDL(screen, x, y, shadowColor);
-	// }
 }
 
 void Interpolate(Pixel a, Pixel b, vector<Pixel> &result)

@@ -1,1 +1,1 @@
-/usr/bin/c++    -rdynamic CMakeFiles/Project.dir/skeleton.cpp.o  -o Project -Wl,-Bstatic -lSDLmain -Wl,-Bdynamic -lSDL -lpthread 
+/usr/bin/c++   -std=c++11  -rdynamic CMakeFiles/Project.dir/skeleton.cpp.o  -o Project -Wl,-rpath,/usr/local/lib -Wl,-Bstatic -lSDLmain -Wl,-Bdynamic -lSDL -lpthread /usr/local/lib/libMagick++-7.Q16HDRI.so 

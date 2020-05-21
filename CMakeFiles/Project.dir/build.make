@@ -81,6 +81,7 @@ Project: CMakeFiles/Project.dir/skeleton.cpp.o
 Project: CMakeFiles/Project.dir/build.make
 Project: /usr/lib/x86_64-linux-gnu/libSDLmain.a
 Project: /usr/lib/x86_64-linux-gnu/libSDL.so
+Project: /usr/local/lib/libMagick++-7.Q16HDRI.so
 Project: CMakeFiles/Project.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/avelinpv/Skola/4an/dgi/project/DH2323_project/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable Project"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Project.dir/link.txt --verbose=$(VERBOSE)
