@@ -40,7 +40,9 @@ vec3 lightPower = 7.1f * vec3(1, 1, 1);
 vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
 vec3 currentNormal;
 vec3 currentReflectance;
-Image img("texture2.bmp");
+Image img("honey.bmp");
+size_t IMAGE_HEIGHT = img.rows();
+size_t IMAGE_WIDTH = img.columns();
 int triangleCount;
 // vec3 translation;
 // mat3 rotationMatrix1;
@@ -56,6 +58,9 @@ struct Pixel
 	float zinv;
 	float shadowInv;
 	vec3 pos3d;
+
+	float s;
+	float t;
 };
 
 struct Vertex
@@ -89,7 +94,6 @@ int main(int argc, char *argv[])
 	try
 	{
 		InitializeMagick(*argv);
-		//Image img("texture.bmp");
 	}
 	catch (Magick::Exception &error)
 	{
@@ -102,7 +106,7 @@ int main(int argc, char *argv[])
 		Draw();
 	}
 
-	SDL_SaveBMP(screen, "screenshot6.bmp"); //Take screenshot
+	SDL_SaveBMP(screen, "screenshot18.bmp"); //Take screenshot
 	return 0;
 }
 
@@ -240,6 +244,11 @@ void VertexShader(const Vertex &v, Pixel &p)
 	p.y = focalLength * (vPrime.y / vPrime.z) + (SCREEN_HEIGHT / 2);
 	p.pos3d = v.position;
 
+	p.s = IMAGE_HEIGHT * (v.position.x / v.position.z) + (IMAGE_WIDTH / 2);
+	p.t = glm::abs(IMAGE_HEIGHT * (v.position.y / v.position.z) + (IMAGE_HEIGHT / 2));
+
+	cout << p.s << " " << p.t << endl;
+
 	p.shadowInv = 1.0f / vLight.z;
 	if (p.shadowInv < shadowMap[p.x][p.y])
 	{
@@ -312,7 +321,7 @@ void PixelShader(const Pixel &p)
 		{
 			try
 			{
-				ColorRGB rgb(img.pixelColor(x, y));
+				ColorRGB rgb(img.pixelColor(p.s, p.t));
 				currentReflectance = vec3(rgb.red(), rgb.green(), rgb.blue());
 			}
 			catch (Magick::Exception &error)
@@ -341,6 +350,9 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel> &result)
 	float yStep = (b.y - a.y) / float(glm::max(N - 1, 1));
 	float zStep = (b.zinv - a.zinv) / float(glm::max(N - 1, 1));
 
+	float sStep = (b.s - a.s) / float(glm::max(N - 1, 1));
+	float tStep = (b.t - a.t) / float(glm::max(N - 1, 1));
+
 	b.pos3d = (b.pos3d * b.zinv);
 	a.pos3d = (a.pos3d * a.zinv);
 	vec3 posStep = vec3(b.pos3d - a.pos3d) / float(glm::max(N - 1, 1));
@@ -352,6 +364,9 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel> &result)
 		result[i].zinv = a.zinv + i * zStep;
 		result[i].pos3d = a.pos3d + float(i) * posStep;
 		result[i].pos3d /= result[i].zinv;
+
+		result[i].s = a.s + i * sStep;
+		result[i].t = a.t + i * tStep;
 	}
 }
 
