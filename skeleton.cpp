@@ -34,19 +34,15 @@ float yaw = 0; // Yaw angle controlling camera rotation around y-axis
 float moveFrac = 0.01f;
 vec3 presentColor; // Color of current pixel
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-float shadowMap[SCREEN_HEIGHT][SCREEN_WIDTH];
 vec3 lightPos(0, -0.5, -0.7);
 vec3 lightPower = 7.1f * vec3(1, 1, 1);
 vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
 vec3 currentNormal;
 vec3 currentReflectance;
-Image img("honey.bmp");
-size_t IMAGE_HEIGHT = img.rows();
-size_t IMAGE_WIDTH = img.columns();
+Image img("texture.bmp");			// Texture image
+size_t IMAGE_HEIGHT = img.rows();	// Img height in pixels
+size_t IMAGE_WIDTH = img.columns(); // Img width in pixels
 int triangleCount;
-// vec3 translation;
-// mat3 rotationMatrix1;
-// mat3 rotationMatrix2;
 
 // ----------------------------------------------------------------------------
 // STRUCT
@@ -56,7 +52,6 @@ struct Pixel
 	int x;
 	int y;
 	float zinv;
-	float shadowInv;
 	vec3 pos3d;
 
 	float s;
@@ -73,12 +68,12 @@ struct Vertex
 
 void Update();
 void Draw();
-void VertexShader(const Vertex &v, Pixel &p);						  // Pixel
-void Interpolate(Pixel a, Pixel b, vector<Pixel> &result);			  // Pixel
-void DrawLineSDL(SDL_Surface *surface, Pixel a, Pixel b, vec3 color); // Pixel
+void VertexShader(const Vertex &v, Pixel &p);
+void Interpolate(Pixel a, Pixel b, vector<Pixel> &result);
+void DrawLineSDL(SDL_Surface *surface, Pixel a, Pixel b, vec3 color);
 void DrawPolygonEdges(const vector<vec3> &vertices);
 void ComputePolygonRows(const vector<Pixel> &vertexPixels, vector<Pixel> &leftPixels, vector<Pixel> &rightPixels);
-void DrawRows(const vector<Pixel> &leftPixels, const vector<Pixel> &rightPixels); // Pixel
+void DrawRows(const vector<Pixel> &leftPixels, const vector<Pixel> &rightPixels);
 void DrawPolygon(const vector<Vertex> &vertices);
 void PixelShader(const Pixel &p);
 
@@ -124,6 +119,7 @@ void Update()
 	vec3 down(R[1][0], R[1][1], R[1][2]);
 	vec3 forward(R[2][0], R[2][1], R[2][2]);
 
+	// Use keystates to move the camera position
 	if (keystate[SDLK_UP])
 	{
 		cameraPos += forward * moveFrac;
@@ -210,7 +206,6 @@ void Draw()
 		for (int x = 0; x < SCREEN_WIDTH; ++x)
 		{
 			depthBuffer[y][x] = 0;
-			shadowMap[y][x] = 0;
 		}
 	}
 
@@ -233,48 +228,18 @@ void Draw()
 	SDL_UpdateRect(screen, 0, 0, 0, 0);
 }
 
-//Pixel
 void VertexShader(const Vertex &v, Pixel &p)
 {
 	vec3 vPrime = (v.position - cameraPos) * R;
-	vec3 vLight = (v.position - lightPos);
 
 	p.zinv = 1.0f / vPrime.z;
 	p.x = focalLength * (vPrime.x / vPrime.z) + (SCREEN_WIDTH / 2);
 	p.y = focalLength * (vPrime.y / vPrime.z) + (SCREEN_HEIGHT / 2);
 	p.pos3d = v.position;
 
+	// Sets the s and t values for each vertex
 	p.s = IMAGE_HEIGHT * (v.position.x / v.position.z) + (IMAGE_WIDTH / 2);
 	p.t = glm::abs(IMAGE_HEIGHT * (v.position.y / v.position.z) + (IMAGE_HEIGHT / 2));
-
-	cout << p.s << " " << p.t << endl;
-
-	p.shadowInv = 1.0f / vLight.z;
-	if (p.shadowInv < shadowMap[p.x][p.y])
-	{
-		shadowMap[p.x][p.y] = p.shadowInv;
-	}
-}
-
-//https://gist.github.com/kevinmoran/b45980723e53edeb8a5a43c49f134724
-mat3 rotateAlign(vec3 u1, vec3 u2)
-{
-	vec3 axis = glm::cross(u1, u2);
-
-	const float cosA = glm::dot(u1, u2);
-	const float k = 1.0f / (1.0f + cosA);
-
-	mat3 result((axis.x * axis.x * k) + cosA,
-				(axis.y * axis.x * k) - axis.z,
-				(axis.z * axis.x * k) + axis.y,
-				(axis.x * axis.y * k) + axis.z,
-				(axis.y * axis.y * k) + cosA,
-				(axis.z * axis.y * k) - axis.x,
-				(axis.x * axis.z * k) - axis.y,
-				(axis.y * axis.z * k) + axis.x,
-				(axis.z * axis.z * k) + cosA);
-
-	return result;
 }
 
 void PixelShader(const Pixel &p)
@@ -288,40 +253,13 @@ void PixelShader(const Pixel &p)
 
 	if (p.zinv > depthBuffer[x][y])
 	{
-		//translation = vec3(lightPos.x - cameraPos.x, lightPos.y - cameraPos.y,
-
-		// rotationMatrix1 = rotateAlign(glm::normalize(p.pos3d), glm::normalize(cameraPos - p.pos3d));
-
-		// rotationMatrix2 = rotateAlign(glm::normalize(cameraPos - p.pos3d), glm::normalize(lightPos - p.pos3d));
-		// temp3d = p.pos3d * rotationMatrix2;
-
-		// vec3 vPrime = (temp3d - lightPos);
-		// int tempx = focalLength * (vPrime.x / vPrime.z) + (SCREEN_WIDTH / 2);
-		// int tempy = focalLength * (vPrime.y / vPrime.z) + (SCREEN_HEIGHT / 2);
-		// cout << tempy << " " << tempx << endl;
-
-		// if (1.0f / vPrime.z > shadowMap[tempx][tempy] - bias)
-		// {
-		// 	visability = 0.6f;
-
-		// 	// 	depthBuffer[x][y] = p.zinv;
-		// 	// 	vec3 rVec = glm::normalize(lightPos - p.pos3d);
-		// 	// 	float r = glm::length(lightPos - p.pos3d);
-		// 	// 	vec3 n = currentNormal;
-		// 	// 	float area = 4 * M_PI * r * r;
-
-		// 	// 	vec3 D = lightPower * max(glm::dot(rVec, n), 0.0f) / area;
-		// 	// 	vec3 R = visability * currentReflectance * (D + indirectLightPowerPerArea);
-
-		// 	// 	PutPixelSDL(screen, x, y, R);
-		// }
-
-		//Case: Tringles for the teapot.
+		//Case: Tringles for the teapot but exclude walls etc.
 		if (triangleCount > 9)
 		{
 			try
 			{
-				ColorRGB rgb(img.pixelColor(p.s, p.t));
+				ColorRGB rgb(img.pixelColor(p.s, p.t)); //Take RGB from img
+				//Change currentReflectance for values from texture image
 				currentReflectance = vec3(rgb.red(), rgb.green(), rgb.blue());
 			}
 			catch (Magick::Exception &error)
@@ -330,7 +268,10 @@ void PixelShader(const Pixel &p)
 			}
 		}
 
+		//Change value in the depth buffer
 		depthBuffer[x][y] = p.zinv;
+
+		// Calculate the light reflection
 		vec3 rVec = glm::normalize(lightPos - p.pos3d);
 		float r = glm::length(lightPos - p.pos3d);
 		vec3 n = currentNormal;
@@ -345,11 +286,13 @@ void PixelShader(const Pixel &p)
 
 void Interpolate(Pixel a, Pixel b, vector<Pixel> &result)
 {
+	// Interpolate x, y, z value for pixels
 	int N = result.size();
 	float xStep = (b.x - a.x) / float(glm::max(N - 1, 1));
 	float yStep = (b.y - a.y) / float(glm::max(N - 1, 1));
 	float zStep = (b.zinv - a.zinv) / float(glm::max(N - 1, 1));
 
+	// Interpolation values for s and t values
 	float sStep = (b.s - a.s) / float(glm::max(N - 1, 1));
 	float tStep = (b.t - a.t) / float(glm::max(N - 1, 1));
 
@@ -365,11 +308,13 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel> &result)
 		result[i].pos3d = a.pos3d + float(i) * posStep;
 		result[i].pos3d /= result[i].zinv;
 
+		// Interpolate the s and t values
 		result[i].s = a.s + i * sStep;
 		result[i].t = a.t + i * tStep;
 	}
 }
 
+// Draw lines between pixels
 void DrawLineSDL(SDL_Surface *surface, Pixel a, Pixel b, vec3 color)
 {
 	Pixel delta;
