@@ -39,10 +39,10 @@ vec3 lightPower = 7.1f * vec3(1, 1, 1);
 vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
 vec3 currentNormal;
 vec3 currentReflectance;
-Image img("texture.bmp");			// Texture image
-size_t IMAGE_HEIGHT = img.rows();	// Img height in pixels
-size_t IMAGE_WIDTH = img.columns(); // Img width in pixels
-int triangleCount;
+Image img("texture.bmp");			// Texture image. Addition from Lab 3
+size_t IMAGE_HEIGHT = img.rows();	// Img height in pixels. Addition from Lab 3
+size_t IMAGE_WIDTH = img.columns(); // Img width in pixels. Addition from Lab 3
+int triangleCount;					//Addition from Lab 3
 
 // ----------------------------------------------------------------------------
 // STRUCT
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 		Draw();
 	}
 
-	SDL_SaveBMP(screen, "screenshot18.bmp"); //Take screenshot
+	//SDL_SaveBMP(screen, "screenshot18.bmp"); //Take screenshot
 	return 0;
 }
 
@@ -237,7 +237,7 @@ void VertexShader(const Vertex &v, Pixel &p)
 	p.y = focalLength * (vPrime.y / vPrime.z) + (SCREEN_HEIGHT / 2);
 	p.pos3d = v.position;
 
-	// Sets the s and t values for each vertex
+	// Sets the s and t values for each vertex. Addition from Lab 3
 	p.s = IMAGE_HEIGHT * (v.position.x / v.position.z) + (IMAGE_WIDTH / 2);
 	p.t = glm::abs(IMAGE_HEIGHT * (v.position.y / v.position.z) + (IMAGE_HEIGHT / 2));
 }
@@ -253,12 +253,13 @@ void PixelShader(const Pixel &p)
 
 	if (p.zinv > depthBuffer[x][y])
 	{
-		//Case: Tringles for the teapot but exclude walls etc.
+		//Case: Tringles for the teapot but exclude walls etc. Addition from Lab 3
 		if (triangleCount > 9)
 		{
 			try
 			{
 				ColorRGB rgb(img.pixelColor(p.s, p.t)); //Take RGB from img
+
 				//Change currentReflectance for values from texture image
 				currentReflectance = vec3(rgb.red(), rgb.green(), rgb.blue());
 			}
@@ -292,7 +293,7 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel> &result)
 	float yStep = (b.y - a.y) / float(glm::max(N - 1, 1));
 	float zStep = (b.zinv - a.zinv) / float(glm::max(N - 1, 1));
 
-	// Interpolation values for s and t values
+	// Interpolation values for s and t values. Addition from Lab 3
 	float sStep = (b.s - a.s) / float(glm::max(N - 1, 1));
 	float tStep = (b.t - a.t) / float(glm::max(N - 1, 1));
 
@@ -308,7 +309,7 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel> &result)
 		result[i].pos3d = a.pos3d + float(i) * posStep;
 		result[i].pos3d /= result[i].zinv;
 
-		// Interpolate the s and t values
+		// Interpolate the s and t values. Addition from Lab 3
 		result[i].s = a.s + i * sStep;
 		result[i].t = a.t + i * tStep;
 	}
